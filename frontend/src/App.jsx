@@ -22,23 +22,29 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController();
+    let isCurrentRequest = true;
     setIsLoading(true);
     setListError('');
 
     listDocuments(activeUserId, { signal: controller.signal })
-      .then(setDocuments)
+      .then((nextDocuments) => {
+        if (isCurrentRequest) setDocuments(nextDocuments);
+      })
       .catch((error) => {
-        if (error.name !== 'AbortError') {
+        if (isCurrentRequest && error.name !== 'AbortError') {
           setListError(error.message);
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
+        if (isCurrentRequest) {
           setIsLoading(false);
         }
       });
 
-    return () => controller.abort();
+    return () => {
+      isCurrentRequest = false;
+      controller.abort();
+    };
   }, [activeUserId, refreshKey]);
 
   function handleUserSubmit(event) {
@@ -51,6 +57,10 @@ export default function App() {
     }
 
     localStorage.setItem('dms-user-id', nextUserId);
+    if (nextUserId !== activeUserId) {
+      setDocuments([]);
+      setListError('');
+    }
     setUserId(nextUserId);
     setActiveUserId(nextUserId);
     setUserError('');

@@ -20,6 +20,11 @@ function listByOwner(owner) {
     .map(toPublicDocument);
 }
 
+function getTotalSize() {
+  return [...documents.values()]
+    .reduce((total, document) => total + document.size, 0);
+}
+
 async function findOwnedById(id, owner) {
   const document = documents.get(id);
 
@@ -47,4 +52,10 @@ function removeStoredFile(filePath) {
   return fs.unlink(filePath);
 }
 
-module.exports = { create, listByOwner, findOwnedById, removeStoredFile };
+module.exports = {
+  create,
+  listByOwner,
+  findOwnedById,
+  getTotalSize,
+  removeStoredFile,
+};

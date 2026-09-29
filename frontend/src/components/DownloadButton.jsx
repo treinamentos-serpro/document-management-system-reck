@@ -16,7 +16,7 @@ export default function DownloadButton({ document, userId }) {
       link.href = objectUrl;
       link.download = document.originalName;
       link.click();
-      URL.revokeObjectURL(objectUrl);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch (downloadError) {
       setError(downloadError.message);
     } finally {

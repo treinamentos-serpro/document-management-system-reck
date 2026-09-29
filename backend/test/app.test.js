@@ -7,6 +7,7 @@ const path = require('node:path');
 const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dms-test-'));
 process.env.STORAGE_DIR = storageDirectory;
 process.env.MAX_UPLOAD_BYTES = '5';
+process.env.MAX_STORAGE_BYTES = '5';
 
 const app = require('../src/app');
 
@@ -63,6 +64,11 @@ test('upload, listagem e download respeitam o proprietário', async (context) =>
     { headers: { 'X-User-Id': 'usuario-b' } },
   );
   assert.strictEqual(unauthorizedResponse.status, 404);
+
+  const otherUserListResponse = await fetch(`${baseUrl}/documents`, {
+    headers: { 'X-User-Id': 'usuario-b' },
+  });
+  assert.deepStrictEqual(await otherUserListResponse.json(), { documents: [] });
 });
 
 test('valida o usuário, a presença do arquivo e o tamanho máximo', async (context) => {
@@ -86,6 +92,38 @@ test('valida o usuário, a presença do arquivo e o tamanho máximo', async (con
   });
   assert.strictEqual(missingFileResponse.status, 400);
   assert.strictEqual((await missingFileResponse.json()).error.code, 'FILE_REQUIRED');
+
+  const traversalBody = new FormData();
+  traversalBody.append('file', new Blob(['x'], { type: 'text/plain' }), '../../fora.txt');
+  const traversalResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    headers: { 'X-User-Id': 'usuario-a' },
+    body: traversalBody,
+  });
+  assert.strictEqual(traversalResponse.status, 201);
+  const { document: traversalDocument } = await traversalResponse.json();
+  assert.strictEqual(traversalDocument.originalName, 'fora.txt');
+
+  const overQuotaBody = new FormData();
+  overQuotaBody.append('file', new Blob(['z'], { type: 'text/plain' }), 'excedente.txt');
+  const overQuotaResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    headers: { 'X-User-Id': 'usuario-a' },
+    body: overQuotaBody,
+  });
+  assert.strictEqual(overQuotaResponse.status, 413);
+  assert.strictEqual((await overQuotaResponse.json()).error.code, 'STORAGE_LIMIT_EXCEEDED');
+
+  const extraFieldBody = new FormData();
+  extraFieldBody.append('unexpected', 'value');
+  extraFieldBody.append('file', new Blob(['x'], { type: 'text/plain' }), 'arquivo.txt');
+  const extraFieldResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    headers: { 'X-User-Id': 'usuario-a' },
+    body: extraFieldBody,
+  });
+  assert.strictEqual(extraFieldResponse.status, 400);
+  assert.strictEqual((await extraFieldResponse.json()).error.code, 'INVALID_UPLOAD');
 
   const largeUploadBody = new FormData();
   largeUploadBody.append('file', new Blob(['grande!!'], { type: 'text/plain' }), 'grande.txt');

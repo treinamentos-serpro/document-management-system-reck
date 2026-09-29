@@ -20,8 +20,16 @@ async function upload(req, res) {
     return sendError(res, 400, 'FILE_REQUIRED', 'Envie um arquivo para continuar.');
   }
 
-  const document = await documentsService.createDocument(req.owner, req.file);
-  return res.status(201).json({ document });
+  try {
+    const document = await documentsService.createDocument(req.owner, req.file);
+    return res.status(201).json({ document });
+  } catch (error) {
+    if (error.code === 'STORAGE_LIMIT_EXCEEDED') {
+      return sendError(res, 413, error.code, error.message);
+    }
+
+    throw error;
+  }
 }
 
 function list(req, res) {

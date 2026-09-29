@@ -202,6 +202,7 @@ O campo `code` deve ser estável para consumo pela interface. A mensagem pode se
 - `repositories/`: grava e lê arquivos locais e mantém os metadados em memória.
 - Multer deve usar `diskStorage` com diretório local `backend/storage` e nome interno gerado pelo servidor.
 - A aplicação deve limitar o tamanho máximo do upload. Valor inicial proposto: 10 MiB, configurável por `MAX_UPLOAD_BYTES`.
+- O armazenamento local deve ter um limite total de 1 GiB por processo, configurável por `MAX_STORAGE_BYTES`; uploads que excedam o limite devem ser removidos e rejeitados com `413 Payload Too Large`.
 - `PORT` configura a porta do backend. O diretório pode usar `STORAGE_DIR`, cujo padrão deve ser `backend/storage`; qualquer configuração continua restrita a filesystem local.
 - O frontend acessa a API com `fetch` usando `/api`, conforme o proxy já configurado no Vite.
 - O endpoint existente `GET /health` permanece independente das rotas de documentos.
